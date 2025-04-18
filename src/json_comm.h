@@ -17,7 +17,10 @@ inline void processCommand(const String& jsonStr) {
 
   if (doc.hasOwnProperty("setIndex")) {
     uint8_t index = int(doc["setIndex"]);
-    if (index < 4) currentIpIndex = index;
+    if (index < 4) {
+      currentIpIndex = index;
+      printStatus();
+    }
   }
 }
 
