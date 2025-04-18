@@ -83,8 +83,29 @@
       font-size: 1rem;
       line-height: 1.6;
     }
-    .status-grid div {
-      word-break: break-word;
+    .subnet-visual {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      gap: 4px;
+      margin-top: 1rem;
+    }
+    .subnet-block {
+      height: 24px;
+      background-color: #333;
+      text-align: center;
+      line-height: 24px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    .subnet-block.active {
+      background-color: #0077cc;
+    }
+    .subnet-block.usable {
+      background-color: #2ecc71;
+    }
+    .subnet-block.broadcast {
+      background-color: #cc3300;
     }
   </style>
 </head>
@@ -119,6 +140,7 @@
       <div>Usable Range:</div><div>–</div>
       <div>Total Hosts:</div><div>–</div>
     </div>
+    <div class="subnet-visual" id="subnetVisual"></div>
   </div>
 
   <script>
@@ -126,6 +148,7 @@
     const decoder = new TextDecoderStream();
     const output = document.getElementById('data');
     const ipListEl = document.getElementById('ipList');
+    const subnetVisual = document.getElementById('subnetVisual');
 
     document.getElementById('connect').addEventListener('click', async () => {
       try {
@@ -205,6 +228,23 @@
         div.onclick = () => sendCommand({ setIndex: i });
         ipListEl.appendChild(div);
       });
+
+      subnetVisual.innerHTML = '';
+      for (let i = 0; i < 256; i++) {
+        const div = document.createElement('div');
+        div.className = 'subnet-block';
+        div.textContent = i;
+
+        if (i === usable[0] - 1 || i === usable[1] + 1) {
+          div.classList.add('broadcast');
+        } else if (i >= usable[0] && i <= usable[1]) {
+          div.classList.add('usable');
+        } else if (i === ip[current]) {
+          div.classList.add('active');
+        }
+
+        subnetVisual.appendChild(div);
+      }
     }
   </script>
 </body>
