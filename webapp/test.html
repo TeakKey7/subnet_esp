@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Web Serial JSON Monitor</title>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: #eee;
+      font-family: monospace;
+      padding: 2em;
+    }
+    button {
+      font-size: 1.1em;
+      padding: 0.5em 1em;
+      margin-bottom: 1em;
+    }
+    #output {
+      background: #2a2a2a;
+      padding: 1em;
+      white-space: pre-wrap;
+      border-radius: 6px;
+      min-height: 10em;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Web Serial JSON Monitor</h1>
+  <button id="connect">Connect</button>
+  <div id="output">Waiting for connection...</div>
+
+  <script>
+    let port, reader, writer;
+    const decoder = new TextDecoderStream();
+    const output = document.getElementById('output');
+
+    document.getElementById('connect').addEventListener('click', async () => {
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+
+        const encoder = new TextEncoderStream();
+        encoder.readable.pipeTo(port.writable);
+        writer = encoder.writable.getWriter();
+
+        port.readable.pipeTo(decoder.writable);
+        reader = decoder.readable.getReader();
+
+        await writer.write("ping\n"); // Initiate handshake
+        readLoop();
+      } catch (err) {
+        output.textContent = `Failed to connect: ${err.message}`;
+      }
+    });
+
+    async function readLoop() {
+      let buffer = '';
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
+
+          let lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+              console.warn("Skipping non-JSON or incomplete line:", trimmed);
+              continue;
+            }
+            try {
+              const json = JSON.parse(trimmed);
+              output.textContent = JSON.stringify(json, null, 2);
+              console.log('[RECV]', json);
+            } catch (err) {
+              console.warn("Parse failed:", trimmed);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Serial read error:', err);
+        output.textContent += `\nSerial disconnected: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
