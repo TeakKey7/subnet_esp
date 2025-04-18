@@ -1,46 +1,65 @@
 #pragma once
+
 #include <Arduino.h>
 #include <Arduino_JSON.h>
 #include "globals.h"
-#include "print_status.h"
+#include "util.h"
 
-
-inline void processCommand(const String& jsonStr) {
-  JSONVar doc = JSON.parse(jsonStr);
-  if (JSON.typeof(doc) != "object") return;
-
-  if (doc.hasOwnProperty("setIp")) {
-    ipConfigs[currentIpIndex].ipByte = int(doc["setIp"]);
-  }
-
-  if (doc.hasOwnProperty("setSubnet")) {
-    byte index = (uint8_t)(int)doc["setSubnet"]["index"];
-    byte value = (uint8_t)(int)doc["setSubnet"]["value"];
-  
-    if (index < 4 && isValidSubnet(value)) {
-      ipConfigs[index].subnetByte = value;
-    }
-  }
-  
-
-  if (doc.hasOwnProperty("setIndex")) {
-    uint8_t index = int(doc["setIndex"]);
-    if (index < 4) {
-      currentIpIndex = index;
-      printStatus();
-    }
-  }
-}
+// 🔧 Forward declaration so it's known to readCommand()
+inline void processCommand(const String& json);
 
 inline void readCommand() {
   static String inputBuffer;
+
   while (Serial.available()) {
     char c = Serial.read();
     if (c == '\n') {
       processCommand(inputBuffer);
       inputBuffer = "";
-    } else {
+    }
+    else {
       inputBuffer += c;
+    }
+  }
+}
+
+inline void processCommand(const String& json) {
+  JSONVar doc = JSON.parse(json);
+  if (JSON.typeof(doc) != "object") return;
+
+  // Update single IP value
+  if (doc.hasOwnProperty("setIp")) {
+    int ipVal = (int)doc["setIp"];
+    if (ipVal >= 0 && ipVal <= 255) {
+      ipConfigs[currentIpIndex].ipByte = (byte)ipVal;
+    }
+  }
+
+  // Update current index
+  if (doc.hasOwnProperty("setIndex")) {
+    int idx = (int)doc["setIndex"];
+    if (idx >= 0 && idx < 4) {
+      currentIpIndex = idx;
+    }
+  }
+
+  // Update subnet for current index
+  if (doc.hasOwnProperty("setSubnet")) {
+    int raw = (int)doc["setSubnet"];
+    if (raw >= 0 && raw <= 255 && isValidSubnet((byte)raw)) {
+      ipConfigs[currentIpIndex].subnetByte = (byte)raw;
+    }
+  }
+
+  // Update subnet for specific index
+  if (doc.hasOwnProperty("setSubnetAt")) {
+    JSONVar sub = doc["setSubnetAt"];
+    if (sub.hasOwnProperty("index") && sub.hasOwnProperty("value")) {
+      int idx = (int)sub["index"];
+      int val = (int)sub["value"];
+      if (idx >= 0 && idx < 4 && val >= 0 && val <= 255 && isValidSubnet((byte)val)) {
+        ipConfigs[idx].subnetByte = (byte)val;
+      }
     }
   }
 }

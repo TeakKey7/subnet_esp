@@ -118,17 +118,24 @@ function displayData(data) {
     const div = document.createElement('div');
     div.className = 'subnet-block';
     div.textContent = i;
-
-    if (i === usable[0] - 1 || i === usable[1] + 1) {
-      div.classList.add('broadcast');
-    } else if (i >= usable[0] && i <= usable[1]) {
+  
+    // Show all 4 IPs with separate colors
+    ip.forEach((val, idx) => {
+      if (i === val) div.classList.add(`ip-${idx}`);
+    });
+  
+    // Mark current IP
+    if (i === ip[current]) div.classList.add('active');
+  
+    if (i >= usable[0] && i <= usable[1]) {
       div.classList.add('usable');
-    } else if (i === ip[current]) {
-      div.classList.add('active');
+    } else if (i === usable[0] - 1 || i === usable[1] + 1) {
+      div.classList.add('broadcast');
     }
-
+  
     subnetVisual.appendChild(div);
   }
+  
 }
 
 function countBits(ip, subnet) {

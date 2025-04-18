@@ -18,3 +18,11 @@ inline String byteToBinaryString(byte b) {
   return out;
 }
 
+
+inline bool isValidSubnet(byte value) {
+  const byte valid[] = {0, 128, 192, 224, 240, 248, 252};  // /25 to /30
+  for (byte i = 0; i < sizeof(valid); i++) {
+    if (value == valid[i]) return true;
+  }
+  return false;
+}
