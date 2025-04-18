@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subnet Viewer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1e1e1e;
+      color: #eee;
+      padding: 2em;
+    }
+    button, input {
+      padding: 0.5em;
+      margin: 0.25em;
+      font-size: 1rem;
+    }
+    .ip-list {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 1em;
+    }
+    .ip-entry {
+      border: 2px solid #444;
+      padding: 0.5em 1em;
+      margin: 0.5em;
+      border-radius: 5px;
+      background: #2a2a2a;
+      cursor: pointer;
+    }
+    .ip-entry.selected {
+      border-color: #00f;
+      background: #003366;
+    }
+    .output {
+      white-space: pre-wrap;
+      background: #2a2a2a;
+      padding: 1em;
+      border-radius: 6px;
+      margin-top: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Arduino Subnet Viewer</h1>
+  <button id="connect">Connect to Arduino</button>
+  <div>
+    <input type="number" id="newIp" placeholder="New IP (0-255)" />
+    <button onclick="sendCommand({ setIp: parseInt(document.getElementById('newIp').value) })">Update IP</button>
+    <br>
+    <input type="number" id="newSubnet" placeholder="New Subnet (e.g. 224)" />
+    <button onclick="sendCommand({ setSubnet: parseInt(document.getElementById('newSubnet').value) })">Update Subnet</button>
+  </div>
+
+  <h2>IP Configurations</h2>
+  <div class="ip-list" id="ipList"></div>
+
+  <div class="output" id="data">No data yet...</div>
+
+  <script>
+    let port, reader, writer;
+    let decoder = new TextDecoderStream();
+    let output = document.getElementById('data');
+    let ipListEl = document.getElementById('ipList');
+    let currentIndex = 0;
+
+    document.getElementById('connect').addEventListener('click', async () => {
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        const readableStreamClosed = port.readable.pipeTo(decoder.writable);
+        reader = decoder.readable.getReader();
+
+        const encoder = new TextEncoderStream();
+        const writableStreamClosed = encoder.readable.pipeTo(port.writable);
+        writer = encoder.writable.getWriter();
+
+        readLoop();
+      } catch (err) {
+        output.textContent = `Error: ${err.message}`;
+      }
+    });
+
+    async function sendCommand(obj) {
+      if (writer) {
+        await writer.write(JSON.stringify(obj) + '\n');
+      }
+    }
+
+    async function readLoop() {
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+
+        let lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          try {
+            const json = JSON.parse(line);
+            displayData(json);
+          } catch (err) {
+            console.warn('Invalid JSON:', line);
+          }
+        }
+      }
+    }
+
+    function displayData(data) {
+      const { subnet, cidr, usable, hosts, current, ip } = data;
+      currentIndex = current;
+
+      const subnetMask = `255.255.255.${subnet}`;
+      const ipString = `192.168.1.${ip[current]}`;
+      const usableRange = `192.168.1.${usable[0]} - 192.168.1.${usable[1]}`;
+
+      output.textContent = `
+IP #${current}: ${ipString} /${cidr}
+Subnet Mask: ${subnetMask}
+Usable Range: ${usableRange}
+Total Hosts: ${hosts}`;
+
+      ipListEl.innerHTML = '';
+      ip.forEach((val, i) => {
+        const div = document.createElement('div');
+        div.className = 'ip-entry' + (i === current ? ' selected' : '');
+        div.textContent = `#${i}: 192.168.1.${val}`;
+        div.onclick = () => sendCommand({ setIndex: i });
+        ipListEl.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
