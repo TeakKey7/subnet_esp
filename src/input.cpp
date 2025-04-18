@@ -8,19 +8,33 @@ uint32_t press(keyEvent evt) {
   if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) {
     heldKeys |= (1 << key);
 
-    if (!inModeSwitch && (heldKeys & 0b11) == 0b11) {
-      mode = 1 - mode;
-      inModeSwitch = true;
-      return 0;
+    // Custom heldKeys combo behavior
+    switch (heldKeys & 0x0F) {
+      case 0x01:
+        // wait - do nothing
+        break;
+      case 0x09:
+        if (currentIpIndex > 0) currentIpIndex--;
+        break;
+      case 0x05:
+        mode = 1 - mode;
+        break;
+      case 0x03:
+        if (currentIpIndex < 3) currentIpIndex++;
+        break;
+      default:
+        break;
     }
 
+    // Normal per-bit update (keys 2-7)
     if (key > 1) {
       if (mode == 1) {
-        ipConfigs[currentIpIndex].ipByte ^= (1 << key);  // ✅ FIXED
+        ipConfigs[currentIpIndex].ipByte ^= (1 << key);
       } else {
         int flipped = 7 - key;
         byte newMask = 0xFF << (8 - (flipped + 1));
-        subnetByte = (subnetByte == newMask) ? 0x00 : newMask;
+        ipConfigs[currentIpIndex].subnetByte =
+            (ipConfigs[currentIpIndex].subnetByte == newMask) ? 0x00 : newMask;
       }
     }
 
@@ -30,18 +44,15 @@ uint32_t press(keyEvent evt) {
   else if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_FALLING) {
     heldKeys &= ~(1 << key);
 
-    if (inModeSwitch && (heldKeys & 0b11) == 0) {
-      inModeSwitch = false;
-      return 0;
-    }
-
-    if ((key == 0 || key == 1) && !inModeSwitch) {
+    // Keys 0/1 single press fallbacks
+    if ((key == 0 || key == 1) && ((heldKeys & 0x0F) == 0x00)) {
       if (mode == 1) {
-        ipConfigs[currentIpIndex].ipByte ^= (1 << key);  // ✅ FIXED
+        ipConfigs[currentIpIndex].ipByte ^= (1 << key);
       } else {
         int flipped = 7 - key;
         byte proposed = 0xFF << (8 - (flipped + 1));
-        subnetByte = (subnetByte == proposed) ? 0x00 : proposed;
+        ipConfigs[currentIpIndex].subnetByte =
+            (ipConfigs[currentIpIndex].subnetByte == proposed) ? 0x00 : proposed;
       }
     }
   }
