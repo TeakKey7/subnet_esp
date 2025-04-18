@@ -3,60 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Subnet Viewer</title>
+  <title>ESP32 Subnet Dashboard</title>
   <style>
     body {
-      font-family: monospace;
-      background: #1e1e1e;
-      color: #eee;
-      padding: 2em;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    button, input {
+    h1 {
+      margin-bottom: 1rem;
+    }
+    .card {
+      background-color: #1e1e1e;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.5rem;
+    }
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    input[type="number"] {
+      flex: 1;
       padding: 0.5em;
-      margin: 0.25em;
       font-size: 1rem;
+      background-color: #2b2b2b;
+      color: #f0f0f0;
+      border: 1px solid #555;
+      border-radius: 4px;
     }
-    .ip-list {
+    button {
+      padding: 0.5em 1em;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: #0077cc;
+      color: white;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    .ip-grid {
       display: flex;
       flex-wrap: wrap;
-      margin-top: 1em;
+      gap: 0.5em;
     }
     .ip-entry {
-      border: 2px solid #444;
+      background: #292929;
+      border: 2px solid transparent;
       padding: 0.5em 1em;
-      margin: 0.5em;
       border-radius: 5px;
-      background: #2a2a2a;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .ip-entry.selected {
-      border-color: #00f;
+      border-color: #00bfff;
       background: #003366;
     }
-    .output {
-      white-space: pre-wrap;
-      background: #2a2a2a;
-      padding: 1em;
-      border-radius: 6px;
-      margin-top: 1em;
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0.75rem 1.25rem;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .status-grid div {
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
-  <h1>ESP32 Subnet Viewer</h1>
-  <button id="connect">Connect to ESP32</button>
-  <div>
-    <input type="number" id="newIp" placeholder="New IP (0-255)" />
-    <button onclick="sendCommand({ setIp: parseInt(document.getElementById('newIp').value) })">Update IP</button>
-    <br>
-    <input type="number" id="newSubnet" placeholder="New Subnet (e.g. 224)" />
-    <button onclick="sendCommand({ setSubnet: parseInt(document.getElementById('newSubnet').value) })">Update Subnet</button>
+  <h1>ESP32 Subnet Dashboard</h1>
+
+  <div class="card">
+    <h2>Connection & Configuration</h2>
+    <div class="form-row">
+      <button id="connect">Connect to ESP32</button>
+    </div>
+    <div class="form-row">
+      <input type="number" id="newIp" placeholder="New IP (0-255)" />
+      <button onclick="sendCommand({ setIp: parseInt(document.getElementById('newIp').value) })">Update IP</button>
+    </div>
+    <div class="form-row">
+      <input type="number" id="newSubnet" placeholder="New Subnet (e.g. 224)" />
+      <button onclick="sendCommand({ setSubnet: parseInt(document.getElementById('newSubnet').value) })">Update Subnet</button>
+    </div>
   </div>
 
-  <h2>IP Configurations</h2>
-  <div class="ip-list" id="ipList"></div>
+  <div class="card">
+    <h2>IP Configurations</h2>
+    <div class="ip-grid" id="ipList"></div>
+  </div>
 
-  <div class="output" id="data">No data yet...</div>
+  <div class="card">
+    <h2>Status</h2>
+    <div class="status-grid" id="data">
+      <div>IP Address:</div><div>–</div>
+      <div>Subnet Mask:</div><div>–</div>
+      <div>Usable Range:</div><div>–</div>
+      <div>Total Hosts:</div><div>–</div>
+    </div>
+  </div>
 
   <script>
     let port, reader, writer;
@@ -64,20 +127,16 @@
     const output = document.getElementById('data');
     const ipListEl = document.getElementById('ipList');
 
-    function looksLikeJson(line) {
-      return line.trim().startsWith("{") && line.trim().endsWith("}");
-    }
-
     document.getElementById('connect').addEventListener('click', async () => {
       try {
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 115200 });
 
         const encoder = new TextEncoderStream();
-        const writableStreamClosed = encoder.readable.pipeTo(port.writable);
+        encoder.readable.pipeTo(port.writable);
         writer = encoder.writable.getWriter();
 
-        const readableStreamClosed = port.readable.pipeTo(decoder.writable);
+        port.readable.pipeTo(decoder.writable);
         reader = decoder.readable.getReader();
 
         port.addEventListener("disconnect", () => {
@@ -85,9 +144,10 @@
           location.reload();
         });
 
+        await writer.write("ping\n");
         readLoop();
       } catch (err) {
-        output.textContent = `Error: ${err.message}`;
+        alert(`Error: ${err.message}`);
       }
     });
 
@@ -97,41 +157,33 @@
       }
     }
 
-function looksLikeJson(line) {
-  return line.trim().startsWith("{") && line.trim().endsWith("}");
-}
+    async function readLoop() {
+      let buffer = '';
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += value;
 
-async function readLoop() {
-  let buffer = '';
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += value;
+          let lines = buffer.split('\n');
+          buffer = lines.pop();
 
-      let lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
-          console.warn("Skipping non-JSON:", trimmed);
-          continue;
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) continue;
+            try {
+              const json = JSON.parse(trimmed);
+              displayData(json);
+            } catch (err) {
+              console.warn("Parse failed:", trimmed);
+            }
+          }
         }
-        try {
-          const json = JSON.parse(trimmed);
-          displayData(json);
-        } catch (err) {
-          console.warn("Invalid JSON, parse failed:", trimmed);
-        }
+      } catch (err) {
+        console.error("Serial read error:", err);
+        alert("Serial device disconnected unexpectedly.");
       }
     }
-  } catch (err) {
-    console.error("💥 Serial read error:", err);
-    alert("Serial device disconnected unexpectedly.");
-  }
-}
-
 
     function displayData(data) {
       const { subnet, cidr, usable, hosts, current, ip } = data;
@@ -139,11 +191,11 @@ async function readLoop() {
       const ipString = `192.168.1.${ip[current]}`;
       const usableRange = `192.168.1.${usable[0]} - 192.168.1.${usable[1]}`;
 
-      output.textContent = `
-IP #${current}: ${ipString} /${cidr}
-Subnet Mask: ${subnetMask}
-Usable Range: ${usableRange}
-Total Hosts: ${hosts}`;
+      const grid = output.querySelectorAll('div');
+      grid[1].textContent = ipString + ' /' + cidr;
+      grid[3].textContent = subnetMask;
+      grid[5].textContent = usableRange;
+      grid[7].textContent = hosts;
 
       ipListEl.innerHTML = '';
       ip.forEach((val, i) => {
