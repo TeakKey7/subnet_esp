@@ -1,14 +1,19 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ESP32 Subnet Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <h1>ESP32 Subnet Dashboard</h1>
+
+  <!-- Subnet diagram at top -->
+  <div class="card">
+    <h2>Subnet Visualization</h2>
+    <div class="subnet-visual" id="subnetVisual"></div>
+  </div>
 
   <div class="card">
     <h2>Connection & Configuration</h2>
@@ -20,16 +25,10 @@
       <button onclick="sendCommand({ setIp: parseInt(document.getElementById('newIp').value) })">Update IP</button>
     </div>
     <div class="form-row">
-      <input type="number" id="subnetForIndex" placeholder="Index (0-3)" />
-      <input type="number" id="subnetValue" placeholder="Subnet (e.g. 224)" />
-      <button onclick="sendCommand({ setSubnet: { index: parseInt(document.getElementById('subnetForIndex').value), value: parseInt(document.getElementById('subnetValue').value) } })">
-        Set Subnet for IP
-      </button>
-    </div>    
-    <div class="form-row">
       <input type="number" id="newSubnet" placeholder="New Subnet (e.g. 224)" />
-      <button onclick="sendCommand({ setSubnet: parseInt(document.getElementById('newSubnet').value) })">Update Subnet</button>
+      <button onclick="validateAndSendSubnet()">Update Subnet</button>
     </div>
+    <p id="subnetError" style="color: #ff5555; display: none;">Invalid subnet! Must be one of: 0, 128, 192, 224, 240, 248, 252.</p>
   </div>
 
   <div class="card">
@@ -45,10 +44,8 @@
       <div>Usable Range:</div><div>–</div>
       <div>Total Hosts:</div><div>–</div>
     </div>
-    <div class="subnet-visual" id="subnetVisual"></div>
   </div>
 
   <script src="script.js"></script>
 </body>
 </html>
-

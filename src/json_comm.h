@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "print_status.h"
 
+
 inline void processCommand(const String& jsonStr) {
   JSONVar doc = JSON.parse(jsonStr);
   if (JSON.typeof(doc) != "object") return;
@@ -15,7 +16,8 @@ inline void processCommand(const String& jsonStr) {
   if (doc.hasOwnProperty("setSubnet")) {
     byte index = (uint8_t)(int)doc["setSubnet"]["index"];
     byte value = (uint8_t)(int)doc["setSubnet"]["value"];
-    if (index < 4) {
+  
+    if (index < 4 && isValidSubnet(value)) {
       ipConfigs[index].subnetByte = value;
     }
   }
