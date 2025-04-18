@@ -3,17 +3,22 @@
 #include "hardware.h"
 
 void updateNeoKeyLEDs() {
-  for (int i = 0; i < 8; i++) {
-    bool bitSet = (1 << i);
+  byte subnetBits = ipConfigs[currentIpIndex].subnetByte;
+  byte ipBits = ipConfigs[currentIpIndex].ipByte;
 
-    if (heldKeys & bitSet) {
-      neokey.setPixelColor(i, 0xFF0000); // Red = held
-    } else if (
-      (mode == 0 && (ipConfigs[currentIpIndex].subnetByte & bitSet)) ||
-      (mode == 1 && (ipConfigs[currentIpIndex].ipByte & bitSet))
-    ) {
-      neokey.setPixelColor(i, (mode == 1) ? 0x0000FF : 0x00FF00); // Blue or green
-    } else {
+  for (int i = 0; i < 8; i++) {
+    uint8_t bit = (1 << i);
+
+    if (heldKeys & bit) {
+      neokey.setPixelColor(i, 0xFF0000); // Held key = red
+    }
+    else if (mode == 0 && (subnetBits & bit)) {
+      neokey.setPixelColor(i, 0x00FF00); // Subnet = green
+    }
+    else if (mode == 1 && (ipBits & bit)) {
+      neokey.setPixelColor(i, 0x0000FF); // IP = blue
+    }
+    else {
       neokey.setPixelColor(i, 0x000000); // Off
     }
   }

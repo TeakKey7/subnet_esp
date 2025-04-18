@@ -5,29 +5,30 @@
 uint32_t press(keyEvent evt) {
   uint8_t key = evt.bit.NUM;
 
+  // === KEY DOWN ===
   if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) {
     heldKeys |= (1 << key);
 
-    // Custom heldKeys combo behavior
+    // Do absolutely nothing if only key 0 is held
+    if ((heldKeys & 0x0F) == 0x01) return 0;
+
+    // Handle key combos
     switch (heldKeys & 0x0F) {
-      case 0x01:
-        // wait - do nothing
-        break;
-      case 0x09:
+      case 0x09:  // key 0 + key 3
         if (currentIpIndex > 0) currentIpIndex--;
-        break;
-      case 0x05:
+        return 0;
+      case 0x05:  // key 0 + key 2
         mode = 1 - mode;
-        break;
-      case 0x03:
+        return 0;
+      case 0x03:  // key 0 + key 1
         if (currentIpIndex < 3) currentIpIndex++;
-        break;
+        return 0;
       default:
         break;
     }
 
-    // Normal per-bit update (keys 2-7)
-    if (key > 1) {
+    // If key is beyond index keys and not locked by key 0:
+    if (key > 1 && (heldKeys & 0x01) == 0) {
       if (mode == 1) {
         ipConfigs[currentIpIndex].ipByte ^= (1 << key);
       } else {
@@ -41,11 +42,12 @@ uint32_t press(keyEvent evt) {
     return 0;
   }
 
+  // === KEY UP ===
   else if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_FALLING) {
     heldKeys &= ~(1 << key);
 
-    // Keys 0/1 single press fallbacks
-    if ((key == 0 || key == 1) && ((heldKeys & 0x0F) == 0x00)) {
+    // If no combo and only a single key 0/1 was pressed+released:
+    if ((key == 0 || key == 1) && (heldKeys & 0x0F) == 0x00) {
       if (mode == 1) {
         ipConfigs[currentIpIndex].ipByte ^= (1 << key);
       } else {
