@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Arduino_JSON.h>
 #include "globals.h"
+#include "print_status.h"
 
 inline void processCommand(const String& jsonStr) {
   JSONVar doc = JSON.parse(jsonStr);
