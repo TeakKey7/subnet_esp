@@ -64,7 +64,7 @@ async function readLoop() {
 
 function displayData(data) {
   const { subnet, cidr, usable, hosts, current, ip } = data;
-  const subnetMask = `255.255.255.${subnet}`;
+  const subnetMask = `255.255.255.${data.subnets[current]}`;
   const ipString = `192.168.1.${ip[current]}`;
   const usableRange = `192.168.1.${usable[0]} - 192.168.1.${usable[1]}`;
 

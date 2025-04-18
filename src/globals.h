@@ -3,6 +3,7 @@
 
 struct IpConfig {
   byte ipByte;
+  byte subnetByte;  // NEW: individual subnet per IP
 };
 
 extern byte heldKeys;

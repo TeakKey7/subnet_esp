@@ -5,11 +5,13 @@
 
 // Assume display is declared in main.ino
 extern Adafruit_SSD1306 display;
-extern byte subnetByte;
 extern byte currentIpIndex;
 
 inline void updateDisplay() {
-  NetworkInfo info = computeNetworkInfo(ipConfigs[currentIpIndex].ipByte, subnetByte);
+  byte ip = ipConfigs[currentIpIndex].ipByte;
+  byte subnet = ipConfigs[currentIpIndex].subnetByte;
+
+  NetworkInfo info = computeNetworkInfo(ip, subnet);
 
   display.clearDisplay();
   display.setTextColor(WHITE);
@@ -37,4 +39,3 @@ inline void updateDisplay() {
 
   display.display();
 }
-

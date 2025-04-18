@@ -20,6 +20,13 @@
       <button onclick="sendCommand({ setIp: parseInt(document.getElementById('newIp').value) })">Update IP</button>
     </div>
     <div class="form-row">
+      <input type="number" id="subnetForIndex" placeholder="Index (0-3)" />
+      <input type="number" id="subnetValue" placeholder="Subnet (e.g. 224)" />
+      <button onclick="sendCommand({ setSubnet: { index: parseInt(document.getElementById('subnetForIndex').value), value: parseInt(document.getElementById('subnetValue').value) } })">
+        Set Subnet for IP
+      </button>
+    </div>    
+    <div class="form-row">
       <input type="number" id="newSubnet" placeholder="New Subnet (e.g. 224)" />
       <button onclick="sendCommand({ setSubnet: parseInt(document.getElementById('newSubnet').value) })">Update Subnet</button>
     </div>

@@ -11,6 +11,8 @@ bool inModeSwitch = false;
 unsigned long currentMillis = 0;
 unsigned long lastSend = 0;
 
-IpConfig ipConfigs[4] = { {42}, {69}, {13}, {37} };
-byte currentIpIndex = 0;
-
+IpConfig ipConfigs[4] = {
+    {42, 0}, {69, 0}, {13, 0}, {37, 0}
+  };
+  byte currentIpIndex = 0;
+  

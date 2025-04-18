@@ -13,8 +13,13 @@ inline void processCommand(const String& jsonStr) {
   }
 
   if (doc.hasOwnProperty("setSubnet")) {
-    subnetByte = int(doc["setSubnet"]);
+    byte index = (uint8_t)(int)doc["setSubnet"]["index"];
+    byte value = (uint8_t)(int)doc["setSubnet"]["value"];
+    if (index < 4) {
+      ipConfigs[index].subnetByte = value;
+    }
   }
+  
 
   if (doc.hasOwnProperty("setIndex")) {
     uint8_t index = int(doc["setIndex"]);
